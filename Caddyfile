@@ -1,0 +1,35 @@
+:{$PORT:80} {
+	log {
+		format json
+	}
+
+	respond /health 200
+
+	header {
+		X-XSS-Protection "1; mode=block"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# CSP relajado: la app carga scripts/estilos desde blob: y usa eval
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https: *; style-src 'self' 'unsafe-inline' https: *; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https: *; font-src 'self' data: https: *; connect-src 'self' blob: https: *; media-src 'self' blob: https: *; object-src 'none'; frame-src 'self' https: *;"
+		-Server
+	}
+
+	root * {{.StaticFileRoot}}
+
+	file_server {
+		hide .git
+		hide .env*
+	}
+
+	encode {
+		gzip
+		zstd
+	}
+
+	try_files {path} {path}.html {path}/index.html
+
+	handle_errors {
+		rewrite * /{err.status_code}.html
+		file_server
+	}
+}
